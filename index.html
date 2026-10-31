@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101b1a" />
+    <meta name="description" content="South Side — an open-world social game in a welcoming community park." />
+    <title>South Side — Community Park</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module" src="./game.js"></script>
+  </head>
+  <body>
+    <main id="game">
+      <div id="scene" aria-label="South Side 3D game world"></div>
+      <div class="scene-vignette" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="South Side home">
+          <span class="brand-mark">S</span>
+          <span class="brand-copy"><strong>SOUTH SIDE</strong><small>COMMUNITY PARK</small></span>
+        </a>
+        <div class="top-actions">
+          <div class="network-state" id="network-state"><span class="network-dot"></span><span>CONNECTING</span></div>
+          <button class="profile-button" id="profile-button" aria-label="Open profile">
+            <span class="profile-avatar" id="profile-avatar" aria-hidden="true">S</span>
+          </button>
+        </div>
+      </header>
+
+      <aside class="right-panel">
+        <section class="time-card">
+          <div class="time-icon" id="time-icon">☀</div>
+          <div class="time-copy"><div id="world-time">--:--</div><small id="world-weather">YOUR LOCAL TIME</small></div>
+          <div class="time-divider"></div>
+          <div class="time-zone" id="time-period">DAY</div>
+        </section>
+        <button class="social-card" id="social-button" aria-label="Show nearby players">
+          <span class="social-icon">◉</span><span><strong>NEARBY PLAYERS</strong><small id="players-count">YOU’RE FIRST HERE</small></span><span class="social-arrow">↗</span>
+        </button>
+      </aside>
+
+      <div class="world-label" id="world-label"><span class="world-label-line"></span><span id="world-label-text">OPEN LAWN</span></div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      <section class="chat-panel" id="chat-panel" aria-label="Nearby chat">
+        <div class="chat-top"><div><strong>PARK CHAT</strong><small>Say hello to your neighbours</small></div><button id="close-chat" aria-label="Close chat">×</button></div>
+        <div class="chat-messages" id="chat-messages"><div class="chat-system">Welcome to South Side Park. Be kind and have fun.</div></div>
+        <form class="chat-form" id="chat-form"><span>↳</span><input id="chat-input" maxlength="160" placeholder="Send a message…" autocomplete="off" /><button type="submit" aria-label="Send message">SEND</button></form>
+      </section>
+
+      <div class="bottom-left">
+        <section class="status-card" aria-label="Stamina">
+          <div class="status-heading"><span>STAMINA</span><span id="stamina-label">100%</span></div>
+          <div class="meter"><div class="meter-fill stamina-fill" id="stamina-fill"></div></div>
+        </section>
+        <div class="move-pad" aria-label="Movement controls">
+          <button data-move="ArrowUp" class="pad-up" aria-label="Move forward">⌃</button>
+          <button data-move="ArrowLeft" class="pad-left" aria-label="Move left">‹</button>
+          <button data-move="ArrowDown" class="pad-down" aria-label="Move backward">⌄</button>
+          <button data-move="ArrowRight" class="pad-right" aria-label="Move right">›</button>
+        </div>
+      </div>
+
+      <div class="bottom-right">
+        <button class="round-action" id="chat-button" aria-label="Open chat"><span>↗</span><small>CHAT</small></button>
+        <button class="round-action voice-action" id="voice-button" aria-label="Enable voice chat"><span id="voice-icon">◖</span><small id="voice-label">VOICE</small></button>
+        <div class="voice-hint" id="voice-hint">VOICE OFF</div>
+      </div>
+
+      <div class="loading" id="loading"><div class="loading-mark">S</div><div class="loading-title">SOUTH SIDE</div><div class="loading-subtitle">A PLACE TO MEET & PLAY</div><div class="loading-bar"><i></i></div><span>SETTING THE SCENE</span></div>
+
+      <div class="modal-backdrop" id="profile-modal">
+        <section class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <button class="modal-close" id="modal-close" aria-label="Close profile">×</button>
+          <div class="modal-kicker"><span class="modal-kicker-line"></span>YOUR STORY STARTS HERE</div>
+          <h1 id="modal-title">Find your<br /><em>South Side.</em></h1>
+          <p>Pick a name and a look. The whole park is yours to explore.</p>
+          <form id="profile-form">
+            <label for="name-input">WHAT SHOULD WE CALL YOU?</label>
+            <input id="name-input" name="name" maxlength="20" minlength="2" placeholder="Your name" required autocomplete="nickname" />
+            <fieldset>
+              <legend>CHOOSE YOUR CHARACTER</legend>
+              <div class="gender-options">
+                <button type="button" class="gender-choice selected" data-gender="male"><span class="gender-icon">♂</span><span><strong>MALE</strong><small>Explore as him</small></span><span class="choice-check">✓</span></button>
+                <button type="button" class="gender-choice" data-gender="female"><span class="gender-icon">♀</span><span><strong>FEMALE</strong><small>Explore as her</small></span><span class="choice-check">✓</span></button>
+              </div>
+            </fieldset>
+            <button type="submit" class="primary-button"><span id="profile-submit-label">ENTER THE PARK</span><span>↗</span></button>
+            <small class="save-note">YOUR PROFILE IS SAVED ON THIS DEVICE</small>
+          </form>
+        </section>
+        <div class="modal-side-note"><span>SOUTH</span><i></i><span>SIDE</span><small>COMMUNITY PARK</small></div>
+      </div>
+    </main>
+  </body>
+</html>
