@@ -55,7 +55,16 @@ const up = new THREE.Vector3(0, 1, 0);
 const playerStart = new THREE.Vector3(-12, 0, 0);
 const player = { group: null, model: null, name: "Explorer", gender: "male", position: playerStart.clone(), velocityY: 0, stamina: 100, moving: false, walkingTime: 0 };
 const keyState = new Set();
-const network = { socket: null, id: null, connected: false, players: new Map(), peers: new Map(), voiceStream: null };
+const network = {
+  socket: null,
+  id: null,
+  connected: false,
+  players: new Map(),
+  peers: new Map(),
+  voiceStream: null,
+  reconnectTimer: null,
+  reconnectDelay: 1000,
+};
 let cameraYaw = 0;
 let cameraPitch = 0.12;
 let chatOpen = false;
@@ -1365,16 +1374,50 @@ function connectNetwork() {
   if (network.socket || !profile || !["http:", "https:"].includes(location.protocol)) {
     return;
   }
-  if (location.hostname === "github.io" || location.hostname.endsWith(".github.io")) {
+  const configuredServer = new URLSearchParams(location.search).get("server") || window.SOUTH_SIDE_SERVER;
+  let endpoint;
+  try {
+    if (configuredServer) {
+      endpoint = new URL(configuredServer, location.href);
+      if (endpoint.protocol === "https:") endpoint.protocol = "wss:";
+      if (endpoint.protocol === "http:") endpoint.protocol = "ws:";
+      if (!["ws:", "wss:"].includes(endpoint.protocol) || endpoint.username || endpoint.password) {
+        throw new TypeError("The multiplayer server must be an HTTP(S) or WS(S) URL without credentials.");
+      }
+      if (location.protocol === "https:" && endpoint.protocol !== "wss:") {
+        throw new TypeError("Secure game pages require a secure WSS multiplayer server.");
+      }
+      const endpointPath = endpoint.pathname.replace(/\/+$/, "");
+      endpoint.pathname = endpointPath.endsWith("/ws") ? endpointPath : `${endpointPath}/ws`;
+      endpoint.hash = "";
+    } else if (location.hostname === "github.io" || location.hostname.endsWith(".github.io")) {
+      $("#network-state").className = "network-state offline";
+      $("#network-state span:last-child").textContent = "SOLO MODE";
+      return;
+    } else {
+      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      endpoint = new URL(`${protocol}//${location.host}/ws`);
+    }
+  } catch (error) {
+    console.error("Could not configure the multiplayer server.", error);
     $("#network-state").className = "network-state offline";
-    $("#network-state span:last-child").textContent = "SOLO MODE";
+    $("#network-state span:last-child").textContent = "SERVER URL ERROR";
     return;
   }
-  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  const socket = new WebSocket(`${protocol}//${location.host}/ws`);
+  $("#network-state").className = "network-state";
+  $("#network-state span:last-child").textContent = "CONNECTING";
+  let socket;
+  try {
+    socket = new WebSocket(endpoint);
+  } catch (error) {
+    console.error("Could not open the multiplayer connection.", error);
+    scheduleNetworkReconnect();
+    return;
+  }
   network.socket = socket;
   socket.addEventListener("open", () => {
     network.connected = true;
+    network.reconnectDelay = 1000;
     $("#network-state").className = "network-state online";
     $("#network-state span:last-child").textContent = "ONLINE";
     socket.send(JSON.stringify({ type: "hello", name: player.name, gender: player.gender, x: player.position.x, z: player.position.z }));
@@ -1391,17 +1434,30 @@ function connectNetwork() {
     handleNetworkMessage(message);
   });
   socket.addEventListener("close", () => {
+    if (network.socket !== socket) return;
     network.connected = false;
     network.socket = null;
+    network.id = null;
     $("#network-state").className = "network-state offline";
     $("#network-state span:last-child").textContent = "OFFLINE";
     clearRemotePlayers();
     updatePlayerCount();
+    scheduleNetworkReconnect();
   });
   socket.addEventListener("error", () => {
     $("#network-state").className = "network-state offline";
     $("#network-state span:last-child").textContent = "OFFLINE";
   });
+}
+
+function scheduleNetworkReconnect() {
+  if (network.reconnectTimer || !profile) return;
+  const delay = network.reconnectDelay;
+  network.reconnectDelay = Math.min(network.reconnectDelay * 2, 15000);
+  network.reconnectTimer = window.setTimeout(() => {
+    network.reconnectTimer = null;
+    connectNetwork();
+  }, delay);
 }
 
 function sendNetwork(message) {
